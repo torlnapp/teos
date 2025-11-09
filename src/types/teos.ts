@@ -30,12 +30,12 @@ export interface MLS_TEOS extends BaseTEOS {
  */
 export interface AAD {
   groupId: string;
+  channelId?: string | null;
   epochId: number;
   senderClientId: string;
   messageSequence: number;
   timestamp: number;
   objectId: string;
-  channelId?: string | null;
 }
 
 export type Envelope = PSKEnvelope | MLSEnvelope;
