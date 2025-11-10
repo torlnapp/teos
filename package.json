@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "build": "bun test && tsdown"
+    "build": "bun test && tsdown",
+    "repomix": "repomix"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.3",
     "@types/bun": "latest",
+    "repomix": "^1.9.0",
     "tsdown": "^0.16.0"
   },
   "peerDependencies": {
