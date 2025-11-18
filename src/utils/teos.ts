@@ -4,7 +4,7 @@ import { verifySignature } from '../lib/signature';
 import { generateBaseTEOSHash } from '../lib/teos';
 import type { AADPayload, BaseTEOS, TEOS } from '../types/teos';
 
-export async function createBaseTEOS(
+export async function createBasePskTEOS(
   identifier: string,
   aad: AADPayload,
   aesKey: CryptoKey,
@@ -31,6 +31,30 @@ export async function createBaseTEOS(
       ...aad,
     },
     nonce,
+    tag,
+    ciphertext,
+  };
+
+  return baseResult;
+}
+
+export async function createBaseMlsTEOS(
+  identifier: string,
+  aad: AADPayload,
+  data: ArrayBuffer,
+): Promise<BaseTEOS> {
+  const { ciphertext, tag } = processCiphertext(data);
+
+  const baseResult: BaseTEOS = {
+    type: 'torln.teos.v1',
+    version,
+    algorithm: 'ChaCha20-Poly1305',
+    aad: {
+      identifier,
+      timestamp: Date.now(),
+      ...aad,
+    },
+    nonce: new Uint8Array(12),
     tag,
     ciphertext,
   };

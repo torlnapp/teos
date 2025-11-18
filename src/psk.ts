@@ -7,7 +7,7 @@ import type {
   PSK_TEOS,
   PSKEnvelope,
 } from './types/teos';
-import { createBaseTEOS, verifyTEOS } from './utils/teos';
+import { createBasePskTEOS, verifyTEOS } from './utils/teos';
 import { encodeText } from './utils/text';
 
 interface PskAADParams {
@@ -82,7 +82,7 @@ export async function createPskTEOS(
     },
     pskBytes,
   );
-  const base = await createBaseTEOS(identifier, aad, aesKey, data);
+  const base = await createBasePskTEOS(identifier, aad, aesKey, data);
   const hash = await generateBaseTEOSHash(base);
   const auth: EnvelopeAuth = {
     publicKey: await crypto.subtle.exportKey('jwk', senderKeyPair.publicKey),

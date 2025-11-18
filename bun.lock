@@ -1,10 +1,12 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "@torlnapp/teos",
       "dependencies": {
         "@msgpack/msgpack": "^3.1.2",
+        "@torlnapp/openmls-wasm": "link:@torlnapp/openmls-wasm",
         "canonicalize": "^2.1.0",
       },
       "devDependencies": {
@@ -127,6 +129,8 @@
     "@secretlint/types": ["@secretlint/types@11.2.5", "", {}, "sha512-iA7E+uXuiEydOwv8glEYM4tCHnl8C7wTgLxg+3upHhH/iSSnefWfoRqrJwVBhwxPg4MDoypVI7Oal7bX7/ne+w=="],
 
     "@sindresorhus/merge-streams": ["@sindresorhus/merge-streams@4.0.0", "", {}, "sha512-tlqY9xq5ukxTUZBmoOp+m61cqwQD5pHJtFY3Mn8CA8ps6yghLH/Hw8UPdqg4OLmFW3IFlcXnQNmo/dh8HzXYIQ=="],
+
+    "@torlnapp/openmls-wasm": ["@torlnapp/openmls-wasm@link:@torlnapp/openmls-wasm", {}],
 
     "@tybys/wasm-util": ["@tybys/wasm-util@0.10.1", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-9tTaPJLSiejZKx+Bmog4uSubteqTvFrVrURwkmHixBo0G4seD0zUxp98E1DzUBJxLQ3NPwXrGKDiVjwx/DpPsg=="],
 

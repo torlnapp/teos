@@ -9,6 +9,7 @@ import {
   defaultAAD as aad,
   createCryptoContext,
   encodePayload,
+  encryptPayloadForMls,
 } from './test-utils';
 
 let aesKey: CryptoKey;
@@ -67,12 +68,13 @@ describe('TEOS flows', () => {
 
   test('createTEOS (mls) produces MLS envelope and extractTEOS succeeds', async () => {
     const original = { status: 'ok', items: [1, 2, 3] };
+    const encoded = encodePayload(original);
+    const encryptedPayload = await encryptPayloadForMls(aesKey, encoded);
 
     const teos = await createMlsTEOS(
       { ...aad, channelId: null },
-      aesKey,
       senderKeyPair,
-      encodePayload(original),
+      encryptedPayload,
     );
 
     const hash = await generateBaseTEOSHash(teos);

@@ -22,6 +22,22 @@ const encodePayload = (value: unknown): ArrayBuffer => {
   );
 };
 
+const encryptPayloadForMls = async (
+  key: CryptoKey,
+  plaintext: ArrayBuffer,
+): Promise<ArrayBuffer> => {
+  // MLS envelopes expect ciphertext + tag generated with a zero IV.
+  const iv = new Uint8Array(12);
+  return crypto.subtle.encrypt(
+    {
+      name: 'AES-GCM',
+      iv,
+    },
+    key,
+    plaintext,
+  );
+};
+
 const toArrayBuffer = (view: Uint8Array<ArrayBuffer>) =>
   view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength);
 
@@ -61,12 +77,12 @@ async function main() {
     count: 42,
     flags: [true, false, true],
   });
+  const mlsCiphertext = await encryptPayloadForMls(aesKey, payload);
 
   const referenceMlsTEOS = await createMlsTEOS(
     defaultAAD,
-    aesKey,
     senderKeyPair,
-    payload,
+    mlsCiphertext,
   );
 
   const referencePskTEOS = await createPskTEOS(
@@ -90,7 +106,8 @@ async function main() {
       await createPskTEOS(defaultAAD, pskBytes, senderKeyPair, payload);
     })
     .add('createMlsTEOS', async () => {
-      await createMlsTEOS(defaultAAD, aesKey, senderKeyPair, payload);
+      const ciphertext = await encryptPayloadForMls(aesKey, payload);
+      await createMlsTEOS(defaultAAD, senderKeyPair, ciphertext);
     })
     .add('extractMlsTEOS', async () => {
       await extractTEOS(referenceMlsTEOS, aesKey, senderKeyPair.publicKey);

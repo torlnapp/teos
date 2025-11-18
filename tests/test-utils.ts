@@ -17,6 +17,21 @@ export const encodePayload = (value: unknown): ArrayBuffer => {
   );
 };
 
+export const encryptPayloadForMls = async (
+  key: CryptoKey,
+  plaintext: ArrayBuffer,
+): Promise<ArrayBuffer> => {
+  const nonce = new Uint8Array(12);
+  return crypto.subtle.encrypt(
+    {
+      name: 'AES-GCM',
+      iv: nonce,
+    },
+    key,
+    plaintext,
+  );
+};
+
 export async function createCryptoContext(): Promise<{
   aesKey: CryptoKey;
   senderKeyPair: CryptoKeyPair;

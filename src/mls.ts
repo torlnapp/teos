@@ -8,17 +8,15 @@ import type {
   MLSEnvelope,
   TEOS,
 } from './types/teos';
-import { createBaseTEOS, verifyTEOS } from './utils/teos';
+import { createBaseMlsTEOS, verifyTEOS } from './utils/teos';
 
 export async function createMlsTEOS(
   aad: AADPayload,
-  aesKey: CryptoKey,
   senderKeyPair: CryptoKeyPair,
   data: ArrayBuffer,
 ): Promise<MLS_TEOS> {
   const identifier = crypto.randomUUID();
-
-  const base = await createBaseTEOS(identifier, aad, aesKey, data);
+  const base = await createBaseMlsTEOS(identifier, aad, data);
   const hash = await generateBaseTEOSHash(base);
   const auth: EnvelopeAuth = {
     publicKey: await crypto.subtle.exportKey('jwk', senderKeyPair.publicKey),

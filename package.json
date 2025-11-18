@@ -21,6 +21,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@torlnapp/openmls-wasm": "link:@torlnapp/openmls-wasm",
     "@msgpack/msgpack": "^3.1.2",
     "canonicalize": "^2.1.0"
   },
