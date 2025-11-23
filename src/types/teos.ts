@@ -34,8 +34,8 @@ export interface AAD extends AADPayload {
 }
 
 export interface AADPayload {
-  groupId: string;
-  channelId?: string | null;
+  contextId: string;
+  scopeId?: string;
   epochId: number;
   senderClientId: string;
   messageSequence: number;

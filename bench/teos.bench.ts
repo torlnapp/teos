@@ -6,11 +6,11 @@ import { createPskTEOS, extractPskTEOS } from '../src/psk';
 import type { AADPayload } from '../src/types/teos';
 
 const defaultAAD: AADPayload = {
-  groupId: 'bench-group',
+  contextId: 'bench-group',
   epochId: 1,
   senderClientId: 'bench-client',
   messageSequence: 1,
-  channelId: 'bench-channel',
+  scopeId: 'bench-channel',
 };
 
 const encodePayload = (value: unknown): ArrayBuffer => {

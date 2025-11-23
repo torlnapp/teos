@@ -77,7 +77,7 @@ describe('TEOS flows', () => {
     const encryptedPayload = await encryptPayloadForMls(aesKey, encoded);
 
     const teos = await createMlsTEOS(
-      { ...aad, channelId: null },
+      aad,
       senderKeyPair.privateKey,
       encryptedPayload,
     );

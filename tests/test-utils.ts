@@ -2,11 +2,11 @@ import { encode } from '@msgpack/msgpack';
 import type { AADPayload } from '../src/types/teos';
 
 export const defaultAAD: AADPayload = {
-  groupId: 'group-123',
+  contextId: 'group-123',
   epochId: 42,
   senderClientId: 'client-7',
   messageSequence: 3,
-  channelId: 'channel-1',
+  scopeId: 'channel-1',
 };
 
 export const encodePayload = (value: unknown): ArrayBuffer => {

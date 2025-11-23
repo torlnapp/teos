@@ -74,7 +74,7 @@ export async function createPskTEOS(
   const aesKey = await derivePskCryptoKey(
     {
       identifier,
-      groupId: aad.groupId,
+      groupId: aad.contextId,
       epochId: aad.epochId,
       pskGeneration: 1,
       senderClientId: aad.senderClientId,
@@ -111,7 +111,7 @@ export async function extractPskTEOS<T>(
   const aesKey = await derivePskCryptoKey(
     {
       identifier: teos.aad.identifier,
-      groupId: teos.aad.groupId,
+      groupId: teos.aad.contextId,
       epochId: teos.aad.epochId,
       pskGeneration: teos.envelope.pskGeneration,
       senderClientId: teos.aad.senderClientId,
