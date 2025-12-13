@@ -1,26 +1,26 @@
+import {
+  AES,
+  type AESKey,
+  type Binary,
+  Ed25519,
+  type Ed25519PublicKey,
+  generateNonce,
+  processCiphertext,
+} from '@torlnapp/crypto-utils';
 import { version } from '../lib/common';
-import { generateNonce, processCiphertext } from '../lib/crypto';
-import { verifySignature } from '../lib/signature';
 import { generateBaseTEOSHash } from '../lib/teos';
 import type { AADPayload, BaseTEOS, TEOS } from '../types/teos';
 
 export async function createBasePskTEOS(
   identifier: string,
   aad: AADPayload,
-  aesKey: CryptoKey,
-  data: Uint8Array<ArrayBuffer>,
+  aesKey: AESKey,
+  data: Binary,
 ): Promise<BaseTEOS> {
   const nonce = generateNonce();
-  const payload = await crypto.subtle.encrypt(
-    {
-      name: 'AES-GCM',
-      iv: nonce,
-    },
-    aesKey,
-    data,
-  );
+  const payload = await AES.encrypt(aesKey, data, nonce);
 
-  const { ciphertext, tag } = processCiphertext(new Uint8Array(payload));
+  const { ciphertext, tag } = processCiphertext(payload);
   const baseResult: BaseTEOS = {
     type: 'torln.teos.v1',
     version,
@@ -41,8 +41,8 @@ export async function createBasePskTEOS(
 export async function createBaseMlsTEOS(
   identifier: string,
   aad: AADPayload,
-  data: Uint8Array<ArrayBuffer>,
-  nonce: Uint8Array<ArrayBuffer>,
+  data: Binary,
+  nonce: Binary,
 ): Promise<BaseTEOS> {
   const { ciphertext, tag } = processCiphertext(data);
 
@@ -65,24 +65,12 @@ export async function createBaseMlsTEOS(
 
 export async function verifyTEOS(
   teos: TEOS,
-  authorPublicKey: globalThis.JsonWebKey | globalThis.CryptoKey,
+  authorPublicKey: Ed25519PublicKey,
 ): Promise<boolean> {
   const hash = await generateBaseTEOSHash(teos);
-  let publicKey: globalThis.CryptoKey;
-  if (authorPublicKey instanceof CryptoKey) {
-    publicKey = authorPublicKey;
-  } else {
-    publicKey = await crypto.subtle.importKey(
-      'jwk',
-      authorPublicKey,
-      { name: 'Ed25519' },
-      false,
-      ['verify'],
-    );
-  }
 
-  const isSignatureValid = await verifySignature(
-    publicKey,
+  const isSignatureValid = await Ed25519.verify(
+    authorPublicKey,
     hash,
     teos.envelope.auth.signature,
   );

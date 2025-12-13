@@ -1,8 +1,12 @@
-import { decode, encode } from '@msgpack/msgpack';
-import canonicalize from 'canonicalize';
+import {
+  type Binary,
+  cm,
+  decodeMsgPack,
+  encodeMsgPack,
+  SHA256,
+} from '@torlnapp/crypto-utils';
 import type { TEOSDto } from '../types/dto';
 import type { BaseTEOS, TEOS } from '../types/teos';
-import { convertToTightUint8Arrays } from '../utils/array';
 
 export async function generateBaseTEOSHash(payload: TEOS | BaseTEOS) {
   const data: BaseTEOS = {
@@ -15,27 +19,15 @@ export async function generateBaseTEOSHash(payload: TEOS | BaseTEOS) {
     ciphertext: payload.ciphertext,
   };
 
-  const canonicalized = canonicalize(data);
-  if (!canonicalized) {
-    throw new Error('[TEOS] Failed to canonicalize TEOS payload');
-  }
-
-  const buffer = await crypto.subtle.digest(
-    {
-      name: 'SHA-256',
-    },
-    new Uint8Array(encode(canonicalized)),
-  );
-
-  return new Uint8Array(buffer);
+  return SHA256.hash(cm(data));
 }
 
-export function serializeTEOS(teos: TEOS): Uint8Array<ArrayBuffer> {
-  return new Uint8Array(encode(teos));
+export function serializeTEOS(teos: TEOS) {
+  return encodeMsgPack(teos);
 }
 
-export function deserializeTEOS(buffer: Uint8Array<ArrayBuffer>): TEOS {
-  const data = convertToTightUint8Arrays(decode(buffer));
+export function deserializeTEOS(buffer: Binary): TEOS {
+  const data = decodeMsgPack(buffer);
   if (
     typeof data === 'object' &&
     data !== null &&

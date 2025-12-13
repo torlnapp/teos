@@ -1,10 +1,17 @@
 import { beforeAll, describe, expect, test } from 'bun:test';
+import {
+  AES,
+  type AESKey,
+  type Binary,
+  Ed25519,
+  type Ed25519KeyPair,
+  type Ed25519PublicKey,
+} from '@torlnapp/crypto-utils';
 import initOpenMls, {
   Group,
   Identity,
   Provider,
 } from '@torlnapp/torln-openmls-wasm';
-import { verifySignature } from '../src/lib/signature';
 import { generateBaseTEOSHash } from '../src/lib/teos';
 import { createMlsTEOS, extractTEOS } from '../src/mls';
 import { createPskTEOS, extractPskTEOS } from '../src/psk';
@@ -17,19 +24,16 @@ import {
   encryptPayloadForMls,
 } from './test-utils';
 
-let senderKeyPair: CryptoKeyPair;
+let senderKeyPair: Ed25519KeyPair;
 let pskBytes: Uint8Array<ArrayBuffer>;
-let authorPublicJwk: JsonWebKey;
-let mlsAesKey: CryptoKey;
+let authorPublicKey: Ed25519PublicKey;
+let mlsAesKey: AESKey;
 let aliceExportedMlsKey: Uint8Array;
 let bobExportedMlsKey: Uint8Array;
 
 beforeAll(async () => {
   ({ senderKeyPair, pskBytes } = await createCryptoContext());
-  authorPublicJwk = await crypto.subtle.exportKey(
-    'jwk',
-    senderKeyPair.publicKey,
-  );
+  authorPublicKey = senderKeyPair.publicKey;
 
   await initOpenMls();
 
@@ -64,12 +68,9 @@ beforeAll(async () => {
   );
   bobExportedMlsKey = bobGroup.exportSecret(bobProvider, label, context, 32);
 
-  mlsAesKey = await crypto.subtle.importKey(
-    'raw',
-    new Uint8Array(aliceExportedMlsKey),
-    { name: 'AES-GCM', length: 256 },
+  mlsAesKey = await AES.importKey(
+    new Uint8Array(aliceExportedMlsKey) satisfies Binary,
     true,
-    ['encrypt', 'decrypt'],
   );
 });
 
@@ -89,15 +90,14 @@ describe('TEOS flows', () => {
     );
 
     const hash = await generateBaseTEOSHash(teos);
-    const directValid = await crypto.subtle.verify(
-      { name: 'Ed25519' },
+    const directValid = await Ed25519.verify(
       senderKeyPair.publicKey,
-      teos.envelope.auth.signature,
       hash,
+      teos.envelope.auth.signature,
     );
     expect(directValid).toBe(true);
 
-    const signatureValid = await verifySignature(
+    const signatureValid = await Ed25519.verify(
       senderKeyPair.publicKey,
       hash,
       teos.envelope.auth.signature,
@@ -134,13 +134,10 @@ describe('TEOS flows', () => {
       nonce,
     );
 
-    const manuallyDecrypted = await crypto.subtle.decrypt(
-      {
-        name: 'AES-GCM',
-        iv: nonce,
-      },
+    const manuallyDecrypted = await AES.decrypt(
       mlsAesKey,
       encryptedPayload,
+      nonce,
     );
     expect(new Uint8Array(manuallyDecrypted)).toEqual(encoded);
 
@@ -159,7 +156,7 @@ describe('TEOS flows', () => {
     expect(teos.aad.identifier).toBe(identifier);
 
     const hash = await generateBaseTEOSHash(teos);
-    const signatureValid = await verifySignature(
+    const signatureValid = await Ed25519.verify(
       senderKeyPair.publicKey,
       hash,
       teos.envelope.auth.signature,
@@ -187,7 +184,7 @@ describe('TEOS flows', () => {
       encodePayload({ payload: 'data' }),
     );
 
-    await expect(verifyTEOS(teos, authorPublicJwk)).resolves.toBe(true);
+    await expect(verifyTEOS(teos, authorPublicKey)).resolves.toBe(true);
 
     const tamperedSignature = new Uint8Array(teos.envelope.auth.signature);
     const firstByte = tamperedSignature.at(0);
@@ -207,7 +204,7 @@ describe('TEOS flows', () => {
       },
     };
 
-    await expect(verifyTEOS(tamperedTeos, authorPublicJwk)).resolves.toBe(
+    await expect(verifyTEOS(tamperedTeos, authorPublicKey)).resolves.toBe(
       false,
     );
   });

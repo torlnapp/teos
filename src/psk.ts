@@ -1,5 +1,16 @@
-import { decode } from '@msgpack/msgpack';
-import { generateSignature, verifySignature } from './lib/signature';
+import {
+  AES,
+  type AESKey,
+  type Binary,
+  decodeMsgPack,
+  Ed25519,
+  type Ed25519PrivateKey,
+  type Ed25519PublicKey,
+  encodeUTF8,
+  generateUUID,
+  HKDF,
+  SHA256,
+} from '@torlnapp/crypto-utils';
 import { generateBaseTEOSHash } from './lib/teos';
 import type {
   AADPayload,
@@ -8,7 +19,6 @@ import type {
   PSKEnvelope,
 } from './types/teos';
 import { createBasePskTEOS } from './utils/teos';
-import { encodeText } from './utils/text';
 
 interface PskAADParams {
   identifier: string;
@@ -21,56 +31,35 @@ interface PskAADParams {
 
 async function derivePskCryptoKey(
   aad: PskAADParams,
-  pskBytes: Uint8Array<ArrayBuffer>,
-): Promise<CryptoKey> {
-  const hkdfBase = await crypto.subtle.importKey(
-    'raw',
-    pskBytes,
-    'HKDF',
-    false,
-    ['deriveBits'],
-  );
+  pskBytes: Binary,
+): Promise<AESKey> {
+  const hkdfBase = await HKDF.importKey(pskBytes);
 
-  const saltInput = encodeText(
+  const saltInput = encodeUTF8(
     `${aad.groupId}|${aad.epochId}|${aad.pskGeneration}`,
   );
-  const saltHashBuffer = await crypto.subtle.digest('SHA-256', saltInput);
+  const saltHashBuffer = await SHA256.hash(saltInput);
   const salt = new Uint8Array(saltHashBuffer);
 
-  const infoKey = encodeText(
+  const infoKey = encodeUTF8(
     `torln-teos-v1:key|${aad.identifier}|${aad.senderClientId}|${aad.messageSequence}`,
   );
-  const keyBitsBuffer = await crypto.subtle.deriveBits(
-    {
-      name: 'HKDF',
-      hash: 'SHA-256',
-      salt,
-      info: infoKey,
-    },
-    hkdfBase,
-    256,
-  );
+
+  const keyBitsBuffer = await HKDF.deriveBits(hkdfBase, salt, infoKey);
   const keyBytes = new Uint8Array(keyBitsBuffer);
 
-  const aesKey = await crypto.subtle.importKey(
-    'raw',
-    keyBytes,
-    { name: 'AES-GCM' },
-    false,
-    ['encrypt', 'decrypt'],
-  );
+  const aesKey = await AES.importKey(keyBytes, false);
 
   return aesKey;
 }
 
 export async function createPskTEOS(
   aad: AADPayload,
-  pskBytes: Uint8Array<ArrayBuffer>,
-  signerPrivateKey: CryptoKey,
-  data: Uint8Array<ArrayBuffer>,
+  pskBytes: Binary,
+  signerPrivateKey: Ed25519PrivateKey,
+  data: Binary,
 ): Promise<PSK_TEOS> {
-  const identifier = crypto.randomUUID();
-
+  const identifier = generateUUID();
   const aesKey = await derivePskCryptoKey(
     {
       identifier,
@@ -85,7 +74,7 @@ export async function createPskTEOS(
   const base = await createBasePskTEOS(identifier, aad, aesKey, data);
   const hash = await generateBaseTEOSHash(base);
   const auth: EnvelopeAuth = {
-    signature: await generateSignature(signerPrivateKey, hash),
+    signature: await Ed25519.sign(signerPrivateKey, hash),
   };
 
   const envelope: PSKEnvelope = {
@@ -105,8 +94,8 @@ export async function createPskTEOS(
 
 export async function extractPskTEOS<T>(
   teos: PSK_TEOS,
-  pskBytes: Uint8Array<ArrayBuffer>,
-  signerPublicKey: CryptoKey,
+  pskBytes: Binary,
+  signerPublicKey: Ed25519PublicKey,
 ): Promise<T> {
   const aesKey = await derivePskCryptoKey(
     {
@@ -121,7 +110,7 @@ export async function extractPskTEOS<T>(
   );
 
   const hash = await generateBaseTEOSHash(teos);
-  const isValid = await verifySignature(
+  const isValid = await Ed25519.verify(
     signerPublicKey,
     hash,
     teos.envelope.auth.signature,
@@ -130,14 +119,11 @@ export async function extractPskTEOS<T>(
     throw new Error('[TEOS] Invalid TEOS signature');
   }
 
-  const result = await crypto.subtle.decrypt(
-    {
-      name: 'AES-GCM',
-      iv: teos.nonce,
-    },
+  const result = await AES.decrypt(
     aesKey,
-    new Uint8Array([...teos.ciphertext, ...teos.tag]).buffer,
+    new Uint8Array([...teos.ciphertext, ...teos.tag]),
+    teos.nonce,
   );
 
-  return decode(result) as T;
+  return decodeMsgPack(result) as T;
 }

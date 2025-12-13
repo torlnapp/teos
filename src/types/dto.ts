@@ -1,3 +1,4 @@
+import type { Binary } from '@torlnapp/crypto-utils';
 import type { Mode } from './teos';
 
 export interface TEOSDto {
@@ -5,6 +6,6 @@ export interface TEOSDto {
   id: string;
   mode: Mode;
   ciphersuite: string;
-  blob: Uint8Array<ArrayBuffer>;
+  blob: Binary;
   timestamp: Date;
 }

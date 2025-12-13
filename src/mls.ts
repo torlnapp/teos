@@ -1,5 +1,12 @@
-import { decode } from '@msgpack/msgpack';
-import { generateSignature, verifySignature } from './lib/signature';
+import {
+  AES,
+  type AESKey,
+  type Binary,
+  decodeMsgPack,
+  Ed25519,
+  type Ed25519PrivateKey,
+  type Ed25519PublicKey,
+} from '@torlnapp/crypto-utils';
 import { deserializeTEOS, generateBaseTEOSHash } from './lib/teos';
 import type {
   AADPayload,
@@ -13,14 +20,14 @@ import { createBaseMlsTEOS } from './utils/teos';
 export async function createMlsTEOS(
   identifier: string,
   aad: AADPayload,
-  signerPrivateKey: CryptoKey,
-  data: Uint8Array<ArrayBuffer>,
-  nonce: Uint8Array<ArrayBuffer>,
+  signerPrivateKey: Ed25519PrivateKey,
+  data: Binary,
+  nonce: Binary,
 ): Promise<MLS_TEOS> {
   const base = await createBaseMlsTEOS(identifier, aad, data, nonce);
   const hash = await generateBaseTEOSHash(base);
   const auth: EnvelopeAuth = {
-    signature: await generateSignature(signerPrivateKey, hash),
+    signature: await Ed25519.sign(signerPrivateKey, hash),
   };
 
   const envelope: MLSEnvelope = {
@@ -38,16 +45,16 @@ export async function createMlsTEOS(
 }
 
 export async function extractTEOS<T>(
-  payload: TEOS | Uint8Array<ArrayBuffer>,
-  aesKey: CryptoKey,
-  signerPublicKey: CryptoKey,
+  payload: TEOS | Binary,
+  aesKey: AESKey,
+  signerPublicKey: Ed25519PublicKey,
 ): Promise<T> {
   if (payload instanceof Uint8Array) {
     payload = deserializeTEOS(payload);
   }
 
   const hash = await generateBaseTEOSHash(payload);
-  const isValid = await verifySignature(
+  const isValid = await Ed25519.verify(
     signerPublicKey,
     hash,
     payload.envelope.auth.signature,
@@ -56,14 +63,11 @@ export async function extractTEOS<T>(
     throw new Error('[TEOS] Invalid TEOS signature');
   }
 
-  const result = await crypto.subtle.decrypt(
-    {
-      name: 'AES-GCM',
-      iv: payload.nonce,
-    },
+  const result = await AES.decrypt(
     aesKey,
     new Uint8Array([...payload.ciphertext, ...payload.tag]),
+    payload.nonce,
   );
 
-  return decode(result) as T;
+  return decodeMsgPack(result) as T;
 }

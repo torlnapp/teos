@@ -1,5 +1,13 @@
 import os from 'node:os';
-import { encode } from '@msgpack/msgpack';
+import {
+  AES,
+  type AESKey,
+  type Binary,
+  Ed25519,
+  type Ed25519KeyPair,
+  encodeMsgPack,
+  generateNonce,
+} from '@torlnapp/crypto-utils';
 import { Bench } from 'tinybench';
 import { createMlsTEOS, extractTEOS } from '../src/mls';
 import { createPskTEOS, extractPskTEOS } from '../src/psk';
@@ -13,51 +21,26 @@ const defaultAAD: AADPayload = {
   scopes: ['bench-scope1'],
 };
 
-const encodePayload = (value: unknown): Uint8Array<ArrayBuffer> => {
-  return new Uint8Array(encode(value));
-};
-
 const encryptPayloadForMls = async (
-  key: CryptoKey,
-  plaintext: Uint8Array<ArrayBuffer>,
-  iv: Uint8Array<ArrayBuffer>,
-): Promise<Uint8Array<ArrayBuffer>> => {
-  const result = await crypto.subtle.encrypt(
-    {
-      name: 'AES-GCM',
-      iv,
-    },
-    key,
-    plaintext,
-  );
-
-  return new Uint8Array(result);
+  key: AESKey,
+  plaintext: Binary,
+  iv: Binary,
+): Promise<Binary> => {
+  return AES.encrypt(key, plaintext, iv);
 };
 
 async function createCryptoContext(): Promise<{
-  aesKey: CryptoKey;
-  senderKeyPair: CryptoKeyPair;
-  pskBytes: Uint8Array<ArrayBuffer>;
+  aesKey: AESKey;
+  senderKeyPair: Ed25519KeyPair;
+  pskBytes: Binary;
 }> {
-  const aesKey = await crypto.subtle.generateKey(
-    { name: 'AES-GCM', length: 256 },
-    true,
-    ['encrypt', 'decrypt'],
-  );
-
-  const ed25519 = await crypto.subtle.generateKey('Ed25519', true, [
-    'sign',
-    'verify',
-  ]);
-
-  if (!('privateKey' in ed25519) || !('publicKey' in ed25519)) {
-    throw new Error('[bench] Failed to create Ed25519 key pair');
-  }
+  const aesKey = await AES.generateKey(true);
+  const senderKeyPair = await Ed25519.generateKeyPair(true);
 
   const pskArray = crypto.getRandomValues(new Uint8Array(32));
   const pskBytes = new Uint8Array(pskArray);
 
-  return { aesKey, senderKeyPair: ed25519, pskBytes };
+  return { aesKey, senderKeyPair, pskBytes };
 }
 
 async function main() {
@@ -67,7 +50,7 @@ async function main() {
     count: 42,
     flags: [true, false, true],
   });
-  const initialNonce = crypto.getRandomValues(new Uint8Array(12));
+  const initialNonce = generateNonce();
   const mlsCiphertext = await encryptPayloadForMls(
     aesKey,
     payload,
@@ -105,7 +88,7 @@ async function main() {
       );
     })
     .add('createMlsTEOS', async () => {
-      const nonce = crypto.getRandomValues(new Uint8Array(12));
+      const nonce = generateNonce();
       const ciphertext = await encryptPayloadForMls(aesKey, payload, nonce);
       await createMlsTEOS(
         crypto.randomUUID(),
@@ -168,3 +151,7 @@ main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
+
+function encodePayload(value: unknown): Uint8Array<ArrayBuffer> {
+  return new Uint8Array(encodeMsgPack(value));
+}

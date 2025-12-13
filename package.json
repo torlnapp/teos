@@ -21,8 +21,8 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@torlnapp/crypto-utils": "^1.0.0",
     "@torlnapp/torln-openmls-wasm": "link:@torlnapp/torln-openmls-wasm",
-    "@msgpack/msgpack": "^3.1.2",
     "canonicalize": "^2.1.0"
   },
   "main": "./dist/index.js",

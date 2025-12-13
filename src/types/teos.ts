@@ -1,3 +1,5 @@
+import type { Binary } from '@torlnapp/crypto-utils';
+
 /**
  * Torln Encrypted Object Specification
  */
@@ -10,9 +12,9 @@ export interface BaseTEOS {
   version: string;
   algorithm: string;
   aad: AAD;
-  nonce: Uint8Array<ArrayBuffer>;
-  tag: Uint8Array<ArrayBuffer>;
-  ciphertext: Uint8Array<ArrayBuffer>;
+  nonce: Binary;
+  tag: Binary;
+  ciphertext: Binary;
 }
 
 export interface PSK_TEOS extends BaseTEOS {
@@ -44,7 +46,7 @@ export interface AADPayload {
 export type Envelope = PSKEnvelope | MLSEnvelope;
 
 export interface EnvelopeAuth {
-  signature: Uint8Array<ArrayBuffer>;
+  signature: Binary;
 }
 
 export interface PSKEnvelope {

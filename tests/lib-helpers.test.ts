@@ -1,6 +1,12 @@
 import { beforeAll, describe, expect, test } from 'bun:test';
-import { generateNonce, processCiphertext } from '../src/lib/crypto';
-import { generateSignature, verifySignature } from '../src/lib/signature';
+import {
+  AES,
+  type AESKey,
+  Ed25519,
+  type Ed25519KeyPair,
+  generateNonce,
+  processCiphertext,
+} from '@torlnapp/crypto-utils';
 import { deserializeTEOS, getTEOSDto, serializeTEOS } from '../src/lib/teos';
 import { createPskTEOS } from '../src/psk';
 import {
@@ -9,8 +15,8 @@ import {
   encodePayload,
 } from './test-utils';
 
-let aesKey: CryptoKey;
-let senderKeyPair: CryptoKeyPair;
+let aesKey: AESKey;
+let senderKeyPair: Ed25519KeyPair;
 let pskBytes: Uint8Array<ArrayBuffer>;
 
 beforeAll(async () => {
@@ -27,13 +33,10 @@ describe('lib helpers', () => {
 
   test('processCiphertext splits AES-GCM payload', async () => {
     const iv = new Uint8Array(12);
-    const payload = await crypto.subtle.encrypt(
-      {
-        name: 'AES-GCM',
-        iv,
-      },
+    const payload = await AES.encrypt(
       aesKey,
       encodePayload({ sample: true }),
+      iv,
     );
 
     const { ciphertext, tag } = processCiphertext(new Uint8Array(payload));
@@ -46,12 +49,12 @@ describe('lib helpers', () => {
 
   test('generateSignature output passes verifySignature', async () => {
     const data = new TextEncoder().encode('sign me');
-    const signature = await generateSignature(senderKeyPair.privateKey, data);
+    const signature = await Ed25519.sign(senderKeyPair.privateKey, data);
 
     expect(signature).toBeInstanceOf(Uint8Array);
     expect(signature.length).toBe(64);
 
-    const valid = await verifySignature(
+    const valid = await Ed25519.verify(
       senderKeyPair.publicKey,
       data,
       signature,
