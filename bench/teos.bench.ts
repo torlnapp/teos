@@ -43,9 +43,9 @@ async function createCryptoContext(): Promise<{
   return { aesKey, senderKeyPair, pskBytes };
 }
 
-async function main() {
+async function main(): Promise<void> {
   const { aesKey, senderKeyPair, pskBytes } = await createCryptoContext();
-  const payload = encodePayload({
+  const payload = encodeMsgPack({
     hello: 'world',
     count: 42,
     flags: [true, false, true],
@@ -107,7 +107,7 @@ async function main() {
 
   await bench.run();
 
-  const formatMs = (value?: number | null) =>
+  const formatMs = (value?: number | null): string =>
     value === undefined || value === null ? 'n/a' : (value * 1_000).toFixed(3);
 
   console.log('=== TEOS Benchmark Results ===');
@@ -151,7 +151,3 @@ main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
-
-function encodePayload(value: unknown): Uint8Array<ArrayBuffer> {
-  return new Uint8Array(encodeMsgPack(value));
-}

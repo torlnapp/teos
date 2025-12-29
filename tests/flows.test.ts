@@ -6,6 +6,7 @@ import {
   Ed25519,
   type Ed25519KeyPair,
   type Ed25519PublicKey,
+  encodeMsgPack,
 } from '@torlnapp/crypto-utils';
 import initOpenMls, {
   Group,
@@ -20,7 +21,6 @@ import { verifyTEOS } from '../src/utils/teos';
 import {
   defaultAAD as aad,
   createCryptoContext,
-  encodePayload,
   encryptPayloadForMls,
 } from './test-utils';
 
@@ -86,7 +86,7 @@ describe('TEOS flows', () => {
       aad,
       pskBytes,
       senderKeyPair.privateKey,
-      encodePayload(original),
+      encodeMsgPack(original),
     );
 
     const hash = await generateBaseTEOSHash(teos);
@@ -124,7 +124,7 @@ describe('TEOS flows', () => {
     expect([...aliceExportedMlsKey]).toEqual([...bobExportedMlsKey]);
 
     const original = { status: 'ok', items: [1, 2, 3] };
-    const encoded = encodePayload(original);
+    const encoded = encodeMsgPack(original);
     const nonce = crypto.getRandomValues(new Uint8Array(12));
     const identifier = crypto.randomUUID();
 
@@ -181,7 +181,7 @@ describe('TEOS flows', () => {
       aad,
       pskBytes,
       senderKeyPair.privateKey,
-      encodePayload({ payload: 'data' }),
+      encodeMsgPack({ payload: 'data' }),
     );
 
     await expect(verifyTEOS(teos, authorPublicKey)).resolves.toBe(true);
@@ -214,7 +214,7 @@ describe('TEOS flows', () => {
       aad,
       pskBytes,
       senderKeyPair.privateKey,
-      encodePayload({ compromised: true }),
+      encodeMsgPack({ compromised: true }),
     );
 
     const tamperedSignature = new Uint8Array(teos.envelope.auth.signature);

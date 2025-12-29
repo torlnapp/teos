@@ -2,7 +2,7 @@ import { defineConfig } from 'repomix';
 
 export default defineConfig({
   output: {
-    filePath: 'teos.repomix.xml',
+    filePath: 'haruna.repomix.xml',
     style: 'xml',
     compress: false,
     removeEmptyLines: true,

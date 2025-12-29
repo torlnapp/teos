@@ -3,7 +3,6 @@ import {
   type AESKey,
   Ed25519,
   type Ed25519KeyPair,
-  encodeMsgPack,
 } from '@torlnapp/crypto-utils';
 import type { AADPayload } from '../src/types/teos';
 
@@ -13,10 +12,6 @@ export const defaultAAD: AADPayload = {
   senderClientId: 'client-7',
   messageSequence: 3,
   scopes: ['scope1'],
-};
-
-export const encodePayload = (value: unknown): Uint8Array<ArrayBuffer> => {
-  return new Uint8Array(encodeMsgPack(value));
 };
 
 export const encryptPayloadForMls = async (

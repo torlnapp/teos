@@ -4,16 +4,13 @@ import {
   type AESKey,
   Ed25519,
   type Ed25519KeyPair,
+  encodeMsgPack,
   generateNonce,
   processCiphertext,
 } from '@torlnapp/crypto-utils';
 import { deserializeTEOS, getTEOSDto, serializeTEOS } from '../src/lib/teos';
 import { createPskTEOS } from '../src/psk';
-import {
-  defaultAAD as aad,
-  createCryptoContext,
-  encodePayload,
-} from './test-utils';
+import { defaultAAD as aad, createCryptoContext } from './test-utils';
 
 let aesKey: AESKey;
 let senderKeyPair: Ed25519KeyPair;
@@ -35,7 +32,7 @@ describe('lib helpers', () => {
     const iv = new Uint8Array(12);
     const payload = await AES.encrypt(
       aesKey,
-      encodePayload({ sample: true }),
+      encodeMsgPack({ sample: true }),
       iv,
     );
 
@@ -67,7 +64,7 @@ describe('lib helpers', () => {
       aad,
       pskBytes,
       senderKeyPair.privateKey,
-      encodePayload({ foo: 'bar' }),
+      encodeMsgPack({ foo: 'bar' }),
     );
 
     const serialized = serializeTEOS(teos);
@@ -82,7 +79,7 @@ describe('lib helpers', () => {
       aad,
       pskBytes,
       senderKeyPair.privateKey,
-      encodePayload({ hello: 'world' }),
+      encodeMsgPack({ hello: 'world' }),
     );
 
     const serialized = serializeTEOS(teos);

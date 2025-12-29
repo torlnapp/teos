@@ -28,6 +28,9 @@
         "noStaticElementInteractions": "off",
         "useSemanticElements": "off",
         "noLabelWithoutControl": "off"
+      },
+      "suspicious": {
+        "noExplicitAny": "error"
       }
     }
   },
